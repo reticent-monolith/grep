@@ -5,20 +5,10 @@ use std::io;
 use std::io::BufRead;
 
 fn main() -> Result<(), String> {
-    // get pattern and filename from args
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 3 {
-	return Err(String::from("Invalid args, need at least a pattern and file"));
-    }
-    let mut ignore = false;
-    if args.len() > 3 && args[3] == "ignore" {
-	ignore = true;
-    }
-    // use a function pointer to allow ignore case to call different fn
+    let args = grep::Args::parse(env::args().collect())?;
     let mut func: fn(&str, &str) -> bool = grep::find;
-    if ignore { func = grep::find_ignore_case; }
-    // read file to a string or set up an iterator
-    let file = match fs::File::open(&args[2]) {
+    if args.ignore { func = grep::find_ignore_case; }
+    let file = match fs::File::open(args.filename) {
 	Ok(file) => file,
 	Err(e) => {return Err(e.to_string());}
     };
@@ -28,7 +18,7 @@ fn main() -> Result<(), String> {
 	match lines.next() {
 	    Some(line) => {
 		let unwrapped = &line.unwrap();
-		if func(&args[1], &unwrapped) {
+		if func(&args.pattern, &unwrapped) {
 		    println!("{}", &unwrapped)
 		}
 	    },
